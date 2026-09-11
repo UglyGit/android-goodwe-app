@@ -1,8 +1,8 @@
 # GoodWe Android TV Monitor
 
 **Status:** Ready for implementation planning  
-**Work ID:** `goodwe-android-tv-monitor`  
-**Assumption:** New Android project; repository contains no existing app or ADRs.
+**Work ID:** goodwe-android-tv-monitor  
+**Assumption:** New Android TV project built using Qt 6 / QML and C++; repository contains no existing app or ADRs.
 
 ## Problem Statement
 
@@ -10,18 +10,17 @@ An owner of a GoodWe GW9.999K-ETA-G20 inverter needs an always-visible, local An
 
 ## Solution
 
-Build a Kotlin Android TV app using Jetpack Compose. On first launch, user enters inverter IP address and port, tests connection, then saves configuration. App polls inverter through Modbus TCP using read operations only and shows a full-screen, TV-remote-friendly energy dashboard. Settings allow connection changes.
+Build a Qt/QML Android TV application. On first launch, the user enters the inverter IP address and port via a TV-remote friendly interface, tests the connection, and saves the configuration. The app background-polls the inverter through a custom C++ Modbus TCP client using read operations only, feeding live telemetry into a full-screen, declarative QML energy dashboard. Settings allow runtime connection changes.
 
-## Reference visuals
+## Reference Visuals
 
-### Supplied energy-distribution reference
+### Supplied Energy-Distribution Reference
+*(Visual direction from source image /home/user/Downloads/132059076-36c35969-90b5-4f80-99dc-1633f9ada20d.png)*
+* **Theme:** Deep dark background, radial Solar/Grid/Home/Battery layout with connector lines and directional flow markers.
+* **Metrics:** Display live power in kW (not cumulative kWh).
+* **Rings:** Battery node ring represents State of Charge (SOC) progress. Home node ring represents live calculated load power. Do not reproduce branding or icons.
 
-![Dark radial energy-distribution dashboard: Solar at top, Grid at left, Home at right, Battery at bottom](/home/user/Downloads/132059076-36c35969-90b5-4f80-99dc-1633f9ada20d.png)
-
-Use this as visual direction: dark background, radial Solar/Grid/Home/Battery layout, coloured source rings, connector lines, and directional flow markers. Display live power in kW rather than the reference image's accumulated kWh figures. Battery ring is SOC progress. Home ring is live load power, not SOC. Do not reproduce its icons or branding.
-
-### Dashboard concept
-
+### Dashboard Concept
 ```text
 ┌──────────────────────────────────────────────────────────┐
 │                                                          │
@@ -44,17 +43,16 @@ Use this as visual direction: dark background, radial Solar/Grid/Home/Battery la
 └──────────────────────────────────────────────────────────┘
 ```
 
-### First-run configuration
-
+### First-Run Configuration
 ```text
 ┌──────────────────────────────────────┐
 │          GoodWe Monitor              │
 │                                      │
 │  Inverter IP address                 │
-│  [ 192.168.1.123              ]      │
+│       │
 │                                      │
 │  Port                                │
-│  [ 502                        ]      │
+│       │
 │                                      │
 │       [ Test Connection ]            │
 │                                      │
@@ -62,8 +60,7 @@ Use this as visual direction: dark background, radial Solar/Grid/Home/Battery la
 └──────────────────────────────────────┘
 ```
 
-### Dashboard after setup
-
+### Dashboard After Setup
 ```text
                  ☀ SOLAR
                   3.25 kW
@@ -88,29 +85,26 @@ Use this as visual direction: dark background, radial Solar/Grid/Home/Battery la
              00   04   08   12   16   20   24
 ```
 
-### Local network topology
-
+### Local Network Topology
 ```text
-                 Debian development PC
+                 Debian development PC (Running Qt Creator / CMake)
                        │
-                       │ Wi-Fi/Ethernet
+                       │ Wi-Fi / Ethernet Deployment (ADB)
                        ▼
               ┌─────────────────┐
               │ Android TV      │
-              │ Dashboard App   │
+              │ Qt/QML App      │
               └────────┬────────┘
                        │
-                       │ LAN
+                       │ LAN (Modbus TCP Client)
                        ▼
               ┌─────────────────┐
               │ GoodWe          │
               │ GW9.999K-ETA-G20│
-              │ Modbus TCP      │
               └─────────────────┘
 ```
 
-### Read-only boundary
-
+### Read-Only Boundary
 ```text
 GoodWe Monitor
      │
@@ -122,62 +116,61 @@ GoodWe Monitor
 
 ## User Stories
 
-1. As an inverter owner, I want to enter inverter IP address, so app can connect on my LAN.
-2. As an inverter owner, I want to set or confirm port 502, so app can connect to Modbus TCP.
-3. As an inverter owner, I want to test connection before saving, so bad settings are caught early.
-4. As an inverter owner, I want invalid IP or port input rejected, so I can correct setup before connecting.
-5. As an inverter owner, I want an unreachable IP or port reported, so I can fix network or inverter settings.
-6. As an inverter owner, I want app to start on dashboard after setup, so TV needs no routine interaction.
+1. As an inverter owner, I want to enter the inverter IP address using a D-pad friendly text field, so the app can connect on my LAN.
+2. As an inverter owner, I want to set or confirm port 502, so the app can connect to Modbus TCP.
+3. As an inverter owner, I want to test the connection before saving, so bad settings are caught early.
+4. As an inverter owner, I want invalid IP or port input rejected locally, so I can correct setup before connecting.
+5. As an inverter owner, I want an unreachable IP or port reported cleanly, so I can fix network or inverter settings.
+6. As an inverter owner, I want the app to switch instantly to the QML dashboard after setup, so the TV needs no routine interaction.
 7. As an inverter owner, I want solar power displayed, so I can see generation.
 8. As an inverter owner, I want grid power and import/export direction displayed, so I can understand grid flow.
 9. As an inverter owner, I want load power displayed, so I can see household demand.
 10. As an inverter owner, I want battery state of charge and charge/discharge power displayed, so I can understand battery use.
 11. As an inverter owner, I want a 24-hour battery-SOC graph, so I can see daily battery behavior.
-12. As an inverter owner, I want clear stale/offline status, so missing inverter data is not mistaken for live data.
-13. As an inverter owner, I want unavailable dashboard values greyed out when connection fails, so none appear operative.
-14. As an inverter owner, I want automatic reconnect, so temporary LAN or inverter outages recover without remote use.
-15. As an inverter owner, I want settings reachable with TV remote, so I can change IP or port.
-16. As a safety-conscious owner, I want app to issue no Modbus writes, so dashboard cannot control inverter.
+12. As an inverter owner, I want a clear stale/offline status display, so missing inverter data is not mistaken for live data.
+13. As an inverter owner, I want unavailable dashboard values greyed out in QML when a connection fails, so none appear operative.
+14. As an inverter owner, I want automatic background reconnection, so temporary LAN or inverter outages recover without remote usage.
+15. As an inverter owner, I want the settings gear reachable via D-pad remote navigation, so I can change the IP or port at any time.
+16. As a safety-conscious owner, I want the C++ core backend to contain no Modbus write mechanisms, ensuring the dashboard cannot control the inverter.
 
 ## Implementation Decisions
 
-- Kotlin, Android TV, Jetpack Compose. Target D-pad navigation, readable large text, full-screen dashboard.
-- Dashboard layout follows supplied radial energy-distribution reference: Solar top, Grid left, Home right, Battery bottom. Keep a separate 24-hour SOC graph below or beside distribution layout, based on 16:9 available space.
-- Battery SOC progress appears in the Battery node ring. Home node remains dedicated to live calculated load power.
-- Deployment target is Android TV 11, API level 30, build `RTMA.250416.2026`, kernel `4.19.116++`. Set minimum SDK to API 30 for this single-TV release.
-- TV remains a normal television. App does not start at boot, replace the launcher, or run as a persistent foreground service.
-- Separate configuration, Modbus read client, telemetry mapping, polling/reconnect, and dashboard state. Modbus client exposes read operations only; no write API exists.
-- Store IP address and port in app settings. Default port is 502. No credentials are collected or stored.
-- First-run state: configuration form. Saved valid configuration: dashboard. Failed or missing connection: grey every dashboard element and show no operative values. Settings cog remains active for repair.
-- Validate IPv4 or hostname input locally and require port 1 through 65535 before test/save. A failed TCP connection reports the entered IP and port as unreachable. Do not claim why connection failed.
-- Connection contract: WiFi/LAN Kit 2.0 IP address, TCP port 502, no authentication. Data contract still requires confirmed ETA-G20 register map, units, signed-power convention, and polling limits before live client work begins. Do not guess registers.
-- Read Holding Registers. Register addresses below use documented decimal addresses. Verify any client-library zero-based offset before sending a request.
+### Technical Stack & UI Boundary
+* Core: C++17, Qt 6, CMake targeting Android TV 11 (API level 30, build RTMA.250416.2026, kernel 4.19.116++). Set minimum SDK to API 30 for this single-TV release.
+* Frontend: Declarative QML utilizing QtQuick and QtQuick.Controls. All key navigation paths must explicitly handle D-pad focus loops (KeyNavigation). Large text scales must be used for a 10-foot TV viewing distance.
+* Lifecyle: TV remains a normal television. The app runs as a standard foreground application. It does not start at boot, replace the system launcher, or spin up persistent Android OS services.
 
-  | Dashboard data | Register | Type | Scale | Rule |
-  | --- | ---: | --- | --- | --- |
-  | Serial number | 512 | STR, 16 bytes | None | Identification |
-  | Model name | 528 | STR, 10 bytes | None | Identification |
-  | Work mode | 544 | UINT16 | None | 0 wait, 1 normal, 2 discharge/off-grid, 3 fault |
-  | PV1 power | 610 | UINT32 | 1 W | Solar input |
-  | PV2 power | 618 | UINT32 | 1 W | Solar input |
-  | Grid power | 632 | INT32 | 1 W | Positive export. Negative import. |
-  | Battery power | 648 | INT32 | 1 W | Provisional: positive charge, negative discharge. Verify on first live test. |
-  | Battery SOC | 650 | UINT16 | 1% | State of charge |
-  | Battery SOH | 651 | UINT16 | 1% | State of health |
-  | Battery temperature | 652 | INT16 | 0.1 C | Battery temperature |
-  | Total PV generation | 674 | UINT32 | 0.1 kWh | Accumulator |
-  | Grid export total | 678 | UINT32 | 0.1 kWh | Accumulator |
-  | Grid import total | 682 | UINT32 | 0.1 kWh | Accumulator |
-  | House-load total | 686 | UINT32 | 0.1 kWh | Accumulator |
+### Architectural Separation (For TDD Verification)
+* InverterConfig (C++): Validates and stores host configuration using QSettings locally on the Android filesystem. Manual IP entry is required for MVP. Automatic LAN scan is deferred: its safe, reliable GoodWe identification method is not yet established.
+* ModbusClient (C++): Built natively on top of QModbusTcpClient. This interface is fundamentally read-only; no write API pathways can be declared or implemented.
+* TelemetryMapper (C++ / QObject): Direct conversion engine transforming raw Modbus registers into scaled values, mapping signs to directional metrics. Exposes data to QML via highly decoupled Q_PROPERTY bindings and notification signals.
+* QML UI Views: Pure presentation layer bound directly to C++ properties. Dashboard layout follows supplied radial energy-distribution reference: Solar top, Grid left, Home right, Battery bottom. Keep a separate 24-hour SOC graph below or beside distribution layout, based on 16:9 available space. Battery SOC progress appears in the Battery node ring. Home node remains dedicated to live calculated load power.
 
-- PV voltage and current diagnostics are available at 606 and 608 for PV1, 614 and 616 for PV2. Grid Phase A voltage, current, and frequency are available at 622, 624, and 626. Do not show them in MVP dashboard.
-- House load is calculated, not read directly. Normalize every device-specific signed value first, then calculate: `house load = PV generation + battery discharge power - grid export power`. This handles both conventions where charging is positive and conventions where discharging is positive.
-- Use supplied ETA mapping provisionally: positive battery power means charging and negative means discharging. The linked GoodWe ET community discussion uses opposite `p_battery` signs for a different model. Verify ETA direction during first live test and correct mapping if needed.
-- Persist SOC samples every 5 minutes so 24-hour graph survives app restart. Retain only current rolling 24 hours.
-- Plot missing history as visible gaps. Do not interpolate across app closure or unavailable inverter data.
-- Poll live telemetry every 5 seconds while dashboard is visible. Stop polling when app is not visible.
-- Manual IP entry is required MVP. Automatic LAN scan is deferred: its safe, reliable GoodWe identification method is not yet established.
-- No cloud backend, external server, Home Assistant integration, or custom protocol framework.
+### Data & Connection Rules
+* Connection Contract: WiFi/LAN Kit 2.0 interface, TCP port 502, completely unauthenticated. Data contract still requires confirmed ETA-G20 register map, units, signed-power convention, and polling limits before live client work begins. Do not guess registers.
+* Validation: Enforce IPv4 regex patterns and ports between 1 and 65535 locally prior to testing.
+* Error Handling: Connection losses grey out elements in the QML tree. System failures must report the specific targeted IP and port as unreachable without speculating on hardware diagnostics. Do not claim why connection failed.
+* Register Architecture: Utilizes explicit decimal Holding Registers. The C++ ModbusClient must account for zero-based API offsets before formatting requests. Read Holding Registers using Function Code 0x03.
+* Atomic Block Reads: To eliminate data skew between separate network transfers, the telemetry polling loop must capture the registers from 35111 through 35183 in a single atomic block-read request via QModbusDataUnit.
+* Diagnostics Boundary: PV voltage and current diagnostics are available at 606 and 608 for PV1, 614 and 616 for PV2. Grid Phase A voltage, current, and frequency are available at 622, 624, and 626. Do not show them in MVP dashboard.
+* Polling Intervals: Poll live telemetry every 5 seconds while dashboard is visible. Stop polling when app is not visible.
+* Calculated Values: House load is calculated, not read directly. Normalize every device-specific signed value first, then calculate: house load = PV generation + battery discharge power - grid export power. This handles both conventions where charging is positive and conventions where discharging is positive.
+* Sign Conventions: Use supplied ETA mapping provisionally: positive battery power means charging and negative means discharging. The linked GoodWe ET community discussion uses opposite p_battery signs for a different model. Verify ETA direction during first live test and correct mapping if needed.
+* History Persistence: Store SOC samples every 5 minutes in a rolling local JSON file so the 24-hour graph survives app restart. Retain only current rolling 24 hours. Plot missing history as visible gaps. Do not interpolate across app closure or unavailable inverter data.
+* Architectural Boundaries: No cloud backend, external server, Home Assistant integration, or custom protocol framework.
+
+# Data Contract & Modbus Map
+
+All registers are read as Holding Registers using Modbus Function Code 0x03. Addresses use standard decimal notation.
+
+| Dashboard Data        | Register (Dec) | Data Type      | Scale | Unit / Interpretation                                       |
+| --------------------- | -------------- | -------------- | ----- | ----------------------------------------------------------- |
+| **Serial Number**     | 512            | STR (16 Bytes) | None  | ASCII Inverter Identification                               |
+| **Solar Power (PV)**  | 35179          | UINT32         | 0.001 | kW (Total generation from all MPPT strings)                 |
+| **Grid Power**        | 35172          | INT32          | 0.001 | kW (Positive = Import from Grid, Negative = Export to Grid) |
+| **Load Power (Home)** | 35183          | UINT32         | 0.001 | kW (Total active household demand)                          |
+| **Battery Power**     | 35111          | INT32          | 0.001 | kW (Positive = Charging, Negative = Discharging)            |
+| **Battery SOC**       | 35115          | UINT16         | 1.0   | % (State of Charge, constrained 0 to 100)                   |
 
 ## Testing Decisions
 
@@ -200,11 +193,3 @@ GoodWe Monitor
 - Tariffs, billing, financial reporting, alerts, multi-inverter support, cloud sync, accounts, Home Assistant, Raspberry Pi, or separate server.
 - Automatic LAN scan in first release.
 - Register-map reverse engineering or guessing unsupported register values.
-
-## Further Notes
-
-- Physical target: GoodWe GW9.999K-ETA-G20 on local network, Android/Google TV on same LAN.
-- Target model confirmed: `GW9.999K-ETA-G20`. Use ETA mapping only.
-- Confirm Android TV can reach inverter directly before UI implementation.
-- Next planning action: split PRD into implementation issues after Modbus TCP details are available; a setup/dashboard shell can proceed independently.
-- Source context included ASCII drawings only. No bitmap images were supplied.
