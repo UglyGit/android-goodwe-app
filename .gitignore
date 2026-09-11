@@ -1,0 +1,39 @@
+# =========================================================================
+# Qt & QML Specific Ignores
+# =========================================================================
+*.user
+*.user.*
+*.qmlc
+*.jsc
+*.moc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+Makefile*
+*-build-*
+build-*
+/.qmake.cache
+/.qmake.stash
+_qmlcache.qrc
+object_script.*
+
+# =========================================================================
+# Android & Gradle Specific Ignores
+# =========================================================================
+.gradle/
+build/
+local.properties
+*.log
+captures/
+.externalNativeBuild/
+.cxx/
+*.aab
+*.apk
+output-metadata.json
+
+# IDE Specifics
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
