@@ -14,8 +14,9 @@ public:
     explicit ModbusClient(QObject *parent = nullptr);
     ~ModbusClient();
 
-    void connectToInverter(const QString &ip, int port);
-    void disconnectFromInverter();
+    Q_INVOKABLE void connectToInverter(const QString &ip, int port);
+    Q_INVOKABLE void disconnectFromInverter();
+    bool readTelemetryBlock(int serverAddress = 1);
 
     QModbusDevice::State state() const;
     bool isReadOnlyInterface() const;
@@ -32,6 +33,8 @@ signals:
 
 private:
     QModbusTcpClient *m_modbusDevice;
+    QVector<quint16> m_pendingTelemetry;
+    int m_pendingReads = 0;
 };
 
 #endif // MODBUS_CLIENT_H

@@ -8,6 +8,21 @@ TelemetryMapper::TelemetryMapper(QObject *parent)
 
 void TelemetryMapper::processRawTelemetry(uint32_t rawPv, int32_t rawBattery, int32_t rawGrid, uint16_t rawSoc)
 {
+    updateTelemetry(rawPv, rawBattery, rawGrid, rawSoc);
+}
+
+void TelemetryMapper::processRawTelemetry(uint32_t rawPv, uint32_t rawBattery, uint16_t batteryMode,
+                                          int32_t rawGrid, uint16_t rawSoc)
+{
+    // GoodWe ETA mode: 0x02 = discharging, 0x03 = charging.
+    const int32_t signedBattery = batteryMode == 0x02
+        ? -static_cast<int32_t>(rawBattery)
+        : static_cast<int32_t>(rawBattery);
+    updateTelemetry(rawPv, signedBattery, rawGrid, rawSoc);
+}
+
+void TelemetryMapper::updateTelemetry(uint32_t rawPv, int32_t rawBattery, int32_t rawGrid, uint16_t rawSoc)
+{
     // 1. Scale incoming integers to double precision kW metrics (0.001 scale factor)
     m_solarPower = rawPv * 0.001;
     m_batterySoc = static_cast<int>(rawSoc);

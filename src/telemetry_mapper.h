@@ -22,6 +22,10 @@ public:
     // Primary entry pipeline to feed processed Modbus register values into the mapper
     void processRawTelemetry(uint32_t rawPv, int32_t rawBattery, int32_t rawGrid, uint16_t rawSoc);
 
+    // Device-facing pipeline: battery register is unsigned magnitude; mode supplies direction.
+    void processRawTelemetry(uint32_t rawPv, uint32_t rawBattery, uint16_t batteryMode,
+                             int32_t rawGrid, uint16_t rawSoc);
+
     // Property Getter accessors
     double solarPower() const { return m_solarPower; }
     double batteryPower() const { return m_batteryPower; }
@@ -35,6 +39,8 @@ signals:
     void telemetryUpdated();
 
 private:
+    void updateTelemetry(uint32_t rawPv, int32_t rawBattery, int32_t rawGrid, uint16_t rawSoc);
+
     double m_solarPower = 0.0;
     double m_batteryPower = 0.0;
     bool m_isBatteryCharging = false;
