@@ -136,7 +136,7 @@ GoodWe Monitor
 ## Implementation Decisions
 
 ### Technical Stack & UI Boundary
-* Core: C++17, Qt 6, CMake targeting Android TV 11 (API level 30, build RTMA.250416.2026, kernel 4.19.116++). Set minimum SDK to API 30 for this single-TV release.
+* Core: C++20, Qt 6, CMake targeting Android TV 11 (API level 30, build RTMA.250416.2026, kernel 4.19.116++). Set minimum SDK to API 30 for this single-TV release.
 * Frontend: Declarative QML utilizing QtQuick and QtQuick.Controls. All key navigation paths must explicitly handle D-pad focus loops (KeyNavigation). Large text scales must be used for a 10-foot TV viewing distance.
 * Lifecyle: TV remains a normal television. The app runs as a standard foreground application. It does not start at boot, replace the system launcher, or spin up persistent Android OS services.
 
@@ -151,7 +151,7 @@ GoodWe Monitor
 * Validation: Enforce IPv4 regex patterns and ports between 1 and 65535 locally prior to testing.
 * Error Handling: Connection losses grey out elements in the QML tree. System failures must report the specific targeted IP and port as unreachable without speculating on hardware diagnostics. Do not claim why connection failed.
 * Register Architecture: Utilizes explicit decimal Holding Registers. The C++ ModbusClient must account for zero-based API offsets before formatting requests. Read Holding Registers using Function Code 0x03.
-* Atomic Block Reads: To eliminate data skew between separate network transfers, the telemetry polling loop must capture the registers from 35111 through 35183 in a single atomic block-read request via QModbusDataUnit.
+* Atomic Block Reads: Use read-only FC03 block requests for each contiguous register group. The confirmed device map spans separate groups, so do not assume one block covers all dashboard fields.
 * Diagnostics Boundary: PV voltage and current diagnostics are available at 606 and 608 for PV1, 614 and 616 for PV2. Grid Phase A voltage, current, and frequency are available at 622, 624, and 626. Do not show them in MVP dashboard.
 * Polling Intervals: Poll live telemetry every 5 seconds while dashboard is visible. Stop polling when app is not visible.
 * Calculated Values: House load is calculated, not read directly. Normalize every device-specific signed value first, then calculate: house load = PV generation + battery discharge power - grid export power. This handles both conventions where charging is positive and conventions where discharging is positive.
@@ -165,12 +165,18 @@ All registers are read as Holding Registers using Modbus Function Code 0x03. Add
 
 | Dashboard Data        | Register (Dec) | Data Type      | Scale | Unit / Interpretation                                       |
 | --------------------- | -------------- | -------------- | ----- | ----------------------------------------------------------- |
-| **Serial Number**     | 512            | STR (16 Bytes) | None  | ASCII Inverter Identification                               |
-| **Solar Power (PV)**  | 35179          | UINT32         | 0.001 | kW (Total generation from all MPPT strings)                 |
-| **Grid Power**        | 35172          | INT32          | 0.001 | kW (Positive = Import from Grid, Negative = Export to Grid) |
-| **Load Power (Home)** | 35183          | UINT32         | 0.001 | kW (Total active household demand)                          |
-| **Battery Power**     | 35111          | INT32          | 0.001 | kW (Positive = Charging, Negative = Discharging)            |
-| **Battery SOC**       | 35115          | UINT16         | 1.0   | % (State of Charge, constrained 0 to 100)                   |
+| **Serial Number**     | 35003 (8 regs) | STR (16 Bytes) | None  | ASCII inverter identification; confirmed live as `59999NBG266L1249` |
+| **Solar Power (PV)**  | 35301 (2 regs) | UINT32         | 1     | W; confirmed live 0 W at night                             |
+| **Grid Power Total**  | 35137 (2 regs) | INT32          | 1     | W; device-specific sign requires live import/export confirmation |
+| **Load Power (Home)** | 35171 (2 regs) | INT32          | 1     | W; on-grid load, excludes backup load                       |
+| **Battery Power**     | 35182 (2 regs) | UINT32         | 1     | W; direction comes from Battery Mode 35184                 |
+| **Battery Mode**      | 35184          | UINT16         | 1     | `0x02` discharging, `0x03` charging                        |
+| **Battery SOC**       | 37007          | UINT16         | 1     | %; confirmed live trend against GoodWe app                  |
+| **Grid Frequency R/S/T** | 35123 / 35128 / 35133 | UINT16 | 0.01 | Hz; confirmed live as 50.00 Hz on all phases               |
+| **Grid Voltage R/S/T** | 35121 / 35126 / 35131 | UINT16 | 0.1 | V                                                               |
+| **Grid Current R/S/T** | 35122 / 35127 / 35132 | UINT16 | 0.1 | A                                                               |
+| **Grid Power R/S/T** | 35124 / 35129 / 35134 (2 regs each) | INT32 | 1 | W; positive means inverter output/export                   |
+| **Load Power R/S/T** | 35163 / 35165 / 35167 (2 regs each) | INT32 | 1 | W; on-grid per-phase load                                  |
 
 ## Testing Decisions
 
@@ -186,6 +192,20 @@ All registers are read as Holding Registers using Modbus Function Code 0x03. Add
 - Test IP and port persistence through app-facing configuration repository.
 - Test 24-hour history retention and dashboard-ready graph samples.
 - Add Android UI tests for D-pad focus and Settings access only where emulator/device setup makes them stable.
+
+### Live validation snapshot
+
+Observed from inverter `192.168.1.57` during night read:
+
+- Serial: `59999NBG266L1249`
+- PV: `0 W`
+- Grid frequency: `50.00 Hz` on R/S/T
+- Grid total: `814 W` raw interpretation
+- Load total: `794 W` raw interpretation
+- Battery: `1013 W`, mode `0x02` (discharging)
+- BMS SOC: `76%`
+
+Power sign and word-order behavior remains provisional until daytime, charging, and discharging snapshots are captured.
 
 ## Out of Scope
 
